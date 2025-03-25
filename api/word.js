@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import clientPromise from './db';
 
 // 验证会话令牌
 function verifySessionToken(token) {
@@ -14,15 +15,18 @@ export default async function handler(req, res) {
   // 检查认证状态
   const sessionToken = req.cookies?.authenticated;
   const deviceId = req.cookies?.deviceId;
-  const storedDeviceId = req.cookies?.storedDeviceId;
   const passwordHash = req.cookies?.passwordHash;
 
-  if (!sessionToken || !deviceId || !storedDeviceId || !passwordHash || !verifySessionToken(sessionToken)) {
+  if (!sessionToken || !deviceId || !passwordHash || !verifySessionToken(sessionToken)) {
     return res.status(401).json({ error: '未授权访问' });
   }
 
-  // 验证设备ID是否匹配
-  if (storedDeviceId !== deviceId) {
+  // 从数据库获取当前登录的设备信息
+  const client = await clientPromise;
+  const db = client.db('word-pin');
+  const device = await db.collection('devices').findOne({ passwordHash });
+  
+  if (!device || device.deviceId !== deviceId) {
     return res.status(401).json({ 
       error: '当前设备未登录',
       message: '系统仅允许同时登录一台设备。如需在此设备上使用，请重新输入密码登录。'
