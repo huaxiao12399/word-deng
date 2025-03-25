@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>登录 - 单词助手</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      background-color: #f8f9fa;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .login-container {
+      background-color: white;
+      border-radius: 16px;
+      padding: 2rem;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+      width: 100%;
+      max-width: 400px;
+    }
+
+    h1 {
+      text-align: center;
+      color: #2c3e50;
+      margin-bottom: 1.5rem;
+      font-size: 1.75rem;
+      font-weight: 600;
+    }
+
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: #495057;
+      font-weight: 500;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px 16px;
+      font-size: 16px;
+      border: 2px solid #e9ecef;
+      border-radius: 12px;
+      outline: none;
+      transition: all 0.3s ease;
+    }
+
+    input:focus {
+      border-color: #4dabf7;
+      box-shadow: 0 0 0 3px rgba(77, 171, 247, 0.1);
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      background-color: #4dabf7;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #339af0;
+      transform: translateY(-1px);
+    }
+
+    .error {
+      color: #e03131;
+      margin-top: 1rem;
+      text-align: center;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <h1>单词助手</h1>
+    <form id="loginForm">
+      <div class="form-group">
+        <label for="password">请输入访问密码</label>
+        <input type="password" id="password" required autofocus>
+      </div>
+      <button type="submit">登录</button>
+    </form>
+    <div id="error" class="error"></div>
+  </div>
+
+  <script>
+    const loginForm = document.getElementById('loginForm');
+    const errorDiv = document.getElementById('error');
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const password = document.getElementById('password').value;
+
+      try {
+        const response = await fetch('/api/verify', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ password })
+        });
+
+        if (response.ok) {
+          // 登录成功，跳转到主页
+          window.location.href = '/';
+        } else {
+          const data = await response.json();
+          // 显示更友好的错误提示
+          if (data.message) {
+            errorDiv.textContent = data.message;
+            errorDiv.style.color = '#2b8a3e'; // 使用绿色显示友好提示
+          } else {
+            errorDiv.textContent = data.error || '密码错误';
+            errorDiv.style.color = '#e03131'; // 使用红色显示错误提示
+          }
+        }
+      } catch (error) {
+        errorDiv.textContent = '验证失败，请稍后重试';
+        errorDiv.style.color = '#e03131';
+      }
+    });
+  </script>
+</body>
+</html> 

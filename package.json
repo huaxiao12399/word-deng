@@ -1,0 +1,12 @@
+{
+  "name": "word-pin",
+  "version": "1.0.0",
+  "description": "Word learning assistant",
+  "main": "index.js",
+  "dependencies": {
+    "mongodb": "^6.3.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
