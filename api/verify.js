@@ -29,8 +29,9 @@ export default async function handler(req, res) {
       const sessionToken = req.cookies?.authenticated;
       const deviceId = req.cookies?.deviceId;
       const storedDeviceId = req.cookies?.storedDeviceId;
+      const passwordHash = req.cookies?.passwordHash;
       
-      if (!sessionToken || !deviceId || !storedDeviceId || !verifySessionToken(sessionToken)) {
+      if (!sessionToken || !deviceId || !storedDeviceId || !passwordHash || !verifySessionToken(sessionToken)) {
         return res.status(401).json({ error: '未授权访问' });
       }
 
@@ -94,6 +95,7 @@ export default async function handler(req, res) {
         `authenticated=${sessionToken}; ${cookieOptions.join('; ')}`,
         `deviceId=${deviceId}; ${cookieOptions.join('; ')}`,
         `storedDeviceId=${deviceId}; ${cookieOptions.join('; ')}`,
+        `passwordHash=${hashedInput}; ${cookieOptions.join('; ')}`,
         `lastLogin=${Date.now()}; ${cookieOptions.join('; ')}`
       ]);
 
