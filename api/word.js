@@ -2,15 +2,31 @@ import crypto from 'crypto';
 
 // 验证会话令牌
 function verifySessionToken(token) {
-  // 这里可以添加更复杂的会话验证逻辑
   return token && token.length === 64; // 简单的长度检查
+}
+
+// 验证密码哈希
+function verifyPasswordHash(passwordHash, storedHash) {
+  return passwordHash === storedHash;
 }
 
 export default async function handler(req, res) {
   // 检查认证状态
   const sessionToken = req.cookies?.authenticated;
-  if (!sessionToken || !verifySessionToken(sessionToken)) {
+  const deviceId = req.cookies?.deviceId;
+  const storedDeviceId = req.cookies?.storedDeviceId;
+  const passwordHash = req.cookies?.passwordHash;
+
+  if (!sessionToken || !deviceId || !storedDeviceId || !passwordHash || !verifySessionToken(sessionToken)) {
     return res.status(401).json({ error: '未授权访问' });
+  }
+
+  // 验证设备ID是否匹配
+  if (storedDeviceId !== deviceId) {
+    return res.status(401).json({ 
+      error: '当前设备未登录',
+      message: '系统仅允许同时登录一台设备。如需在此设备上使用，请重新输入密码登录。'
+    });
   }
 
   if (req.method !== 'POST') {
