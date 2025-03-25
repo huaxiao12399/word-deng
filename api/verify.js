@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import clientPromise from './db';
 
 // 简单的密码哈希函数
 function hashPassword(password) {
@@ -28,15 +29,18 @@ export default async function handler(req, res) {
     try {
       const sessionToken = req.cookies?.authenticated;
       const deviceId = req.cookies?.deviceId;
-      const storedDeviceId = req.cookies?.storedDeviceId;
       const passwordHash = req.cookies?.passwordHash;
       
-      if (!sessionToken || !deviceId || !storedDeviceId || !passwordHash || !verifySessionToken(sessionToken)) {
+      if (!sessionToken || !deviceId || !passwordHash || !verifySessionToken(sessionToken)) {
         return res.status(401).json({ error: '未授权访问' });
       }
 
-      // 验证设备ID是否匹配
-      if (storedDeviceId !== deviceId) {
+      // 从数据库获取当前登录的设备信息
+      const client = await clientPromise;
+      const db = client.db('word-pin');
+      const device = await db.collection('devices').findOne({ passwordHash });
+
+      if (!device || device.deviceId !== deviceId) {
         return res.status(401).json({ 
           error: '当前设备未登录',
           message: '系统仅允许同时登录一台设备。如需在此设备上使用，请重新输入密码登录。'
@@ -82,6 +86,21 @@ export default async function handler(req, res) {
       const sessionToken = generateSessionToken();
       const deviceId = generateDeviceId(req);
       
+      // 将当前设备信息存储到数据库
+      const client = await clientPromise;
+      const db = client.db('word-pin');
+      await db.collection('devices').updateOne(
+        { passwordHash: hashedInput },
+        { 
+          $set: { 
+            deviceId,
+            lastLogin: new Date(),
+            passwordHash: hashedInput
+          } 
+        },
+        { upsert: true }
+      );
+      
       const cookieOptions = [
         'Path=/',
         'HttpOnly',
@@ -94,7 +113,6 @@ export default async function handler(req, res) {
       res.setHeader('Set-Cookie', [
         `authenticated=${sessionToken}; ${cookieOptions.join('; ')}`,
         `deviceId=${deviceId}; ${cookieOptions.join('; ')}`,
-        `storedDeviceId=${deviceId}; ${cookieOptions.join('; ')}`,
         `passwordHash=${hashedInput}; ${cookieOptions.join('; ')}`,
         `lastLogin=${Date.now()}; ${cookieOptions.join('; ')}`
       ]);
