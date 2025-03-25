@@ -22,23 +22,20 @@ function verifySessionToken(token) {
   return token && token.length === 64; // 简单的长度检查
 }
 
-// 存储活跃会话的 Map（在 Vercel 上，这个 Map 会在每次函数调用时重置，但足够用于单次请求的验证）
-const activeSessions = new Map();
-
 export default async function handler(req, res) {
   // 处理 GET 请求（检查登录状态）
   if (req.method === 'GET') {
     try {
       const sessionToken = req.cookies?.authenticated;
       const deviceId = req.cookies?.deviceId;
+      const storedDeviceId = req.cookies?.storedDeviceId;
       
-      if (!sessionToken || !deviceId || !verifySessionToken(sessionToken)) {
+      if (!sessionToken || !deviceId || !storedDeviceId || !verifySessionToken(sessionToken)) {
         return res.status(401).json({ error: '未授权访问' });
       }
 
       // 验证设备ID是否匹配
-      const storedDeviceId = activeSessions.get(sessionToken);
-      if (!storedDeviceId || storedDeviceId !== deviceId) {
+      if (storedDeviceId !== deviceId) {
         return res.status(401).json({ 
           error: '当前设备未登录',
           message: '系统仅允许同时登录一台设备。如需在此设备上使用，请重新输入密码登录。'
@@ -84,17 +81,6 @@ export default async function handler(req, res) {
       const sessionToken = generateSessionToken();
       const deviceId = generateDeviceId(req);
       
-      // 检查是否有其他设备使用相同密码登录
-      for (const [token, storedDeviceId] of activeSessions.entries()) {
-        if (storedDeviceId !== deviceId) {
-          // 清除其他设备的会话
-          activeSessions.delete(token);
-        }
-      }
-      
-      // 存储新的会话信息
-      activeSessions.set(sessionToken, deviceId);
-
       const cookieOptions = [
         'Path=/',
         'HttpOnly',
@@ -107,6 +93,7 @@ export default async function handler(req, res) {
       res.setHeader('Set-Cookie', [
         `authenticated=${sessionToken}; ${cookieOptions.join('; ')}`,
         `deviceId=${deviceId}; ${cookieOptions.join('; ')}`,
+        `storedDeviceId=${deviceId}; ${cookieOptions.join('; ')}`,
         `lastLogin=${Date.now()}; ${cookieOptions.join('; ')}`
       ]);
 
